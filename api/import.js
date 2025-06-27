@@ -1,9 +1,10 @@
+import fetch from "node-fetch"; // Add this at the top
+
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "https://auto-drop-x.vercel.app");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
-  // Handle preflight OPTIONS request
   if (req.method === "OPTIONS") {
     return res.status(200).end();
   }
@@ -12,7 +13,17 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const { amazonUrl } = req.body;
+  // Parse body if needed
+  let amazonUrl;
+  if (typeof req.body === "string") {
+    try {
+      amazonUrl = JSON.parse(req.body).amazonUrl;
+    } catch {
+      return res.status(400).json({ error: "Invalid JSON" });
+    }
+  } else {
+    amazonUrl = req.body.amazonUrl;
+  }
 
   if (!amazonUrl) {
     return res.status(400).json({ error: "Missing amazonUrl" });
