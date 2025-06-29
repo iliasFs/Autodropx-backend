@@ -48,7 +48,7 @@ export default async function handler(req, res) {
 
   try {
     const response = await fetch(
-      `https://api.brightdata.com/datasets/v3/snapshot_data?dataset_id=gd_l7q7dkf244hwjntr0&snapshot_id=${snapshot_id}`,
+      `https://api.brightdata.com/webarchive/dump/${snapshot_id}`,
       {
         method: "GET",
         headers: {
