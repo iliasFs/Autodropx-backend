@@ -1,28 +1,67 @@
-// /api/snapshot.js
+import fetch from "node-fetch";
+
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "https://auto-drop-x.vercel.app");
-  res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
   if (req.method === "OPTIONS") return res.status(200).end();
-  if (req.method !== "GET") return res.status(405).json({ error: "Method not allowed" });
 
-  const { snapshot_id } = req.query;
-  if (!snapshot_id) return res.status(400).json({ error: "Missing snapshot_id" });
+  // Handle POST: trigger Bright Data and return snapshot_id
+  if (req.method === "POST") {
+    let amazonUrl;
+    try {
+      amazonUrl = typeof req.body === "string" ? JSON.parse(req.body).amazonUrl : req.body.amazonUrl;
+    } catch {
+      return res.status(400).json({ error: "Invalid JSON" });
+    }
+    if (!amazonUrl) return res.status(400).json({ error: "Missing amazonUrl" });
 
-  try {
-    const response = await fetch(
-      `https://api.brightdata.com/datasets/v3/snapshot_data?dataset_id=gd_l7q7dkf244hwjntr0&snapshot_id=${snapshot_id}`,
-      {
-        headers: {
-          Authorization: `Bearer ${process.env.BRIGHT_DATA_API_KEY}`,
-        },
+    try {
+      const response = await fetch(
+        "https://api.brightdata.com/datasets/v3/trigger?dataset_id=gd_l7q7dkf244hwjntr0&include_errors=true",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${process.env.BRIGHT_DATA_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify([{ url: amazonUrl }]),
+        }
+      );
+      const data = await response.json();
+      // Return the snapshot_id for polling
+      if (data && data.snapshot_id) {
+        return res.status(200).json({ snapshot_id: data.snapshot_id });
+      } else {
+        return res.status(500).json({ error: "No snapshot_id returned from Bright Data", data });
       }
-    );
-    const data = await response.json();
-    console.log("Response from Bright Data:", data);
-    return res.status(200).json(data);
-  } catch (error) {
-    return res.status(500).json({ error: error.message });
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
   }
+
+  // Handle GET: poll for snapshot data
+  if (req.method === "GET") {
+    const { snapshot_id } = req.query;
+    if (!snapshot_id) return res.status(400).json({ error: "Missing snapshot_id" });
+
+    try {
+      const response = await fetch(
+        `https://api.brightdata.com/datasets/v3/snapshot_data?dataset_id=gd_l7q7dkf244hwjntr0&snapshot_id=${snapshot_id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${process.env.BRIGHT_DATA_API_KEY}`,
+          },
+        }
+      );
+      const data = await response.json();
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  }
+
+  // Method not allowed
+  return res.status(405).json({ error: "Method not allowed" });
 }
