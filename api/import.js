@@ -47,24 +47,32 @@ export default async function handler(req, res) {
     if (!snapshot_id) return res.status(400).json({ error: "Missing snapshot_id" });
 
     try {
-      const response = await fetch(
-        `https://api.brightdata.com/datasets/v3/snapshot_data?dataset_id=gd_l7q7dkf244hwjntr0&snapshot_id=${snapshot_id}`,
-        {
-          headers: {
-            Authorization: `Bearer ${process.env.BRIGHT_DATA_API_KEY}`,
-          },
-        }
-      );
-      const data = await response.json();
-
-      if (!response.ok) {
-        console.error("Bright Data error:", data);
-        return res.status(500).json({ error: "Bright Data API error", details: data });
-      }
-      return res.status(200).json(data);
-    } catch (error) {
-      return res.status(500).json({ error: error.message });
+  const response = await fetch(
+    `https://api.brightdata.com/datasets/v3/snapshot_data?dataset_id=gd_l7q7dkf244hwjntr0&snapshot_id=${snapshot_id}`,
+    {
+      headers: {
+        Authorization: `Bearer ${process.env.BRIGHT_DATA_API_KEY}`,
+      },
     }
+  );
+  let data;
+  let text = await response.text();
+  try {
+    data = JSON.parse(text);
+  } catch (e) {
+    // Log the raw HTML/error page for debugging
+    console.error("Bright Data returned non-JSON:", text);
+    return res.status(500).json({ error: "Bright Data returned non-JSON", details: text });
+  }
+
+  if (!response.ok) {
+    console.error("Bright Data error:", data);
+    return res.status(500).json({ error: "Bright Data API error", details: data });
+  }
+  return res.status(200).json(data);
+} catch (error) {
+  return res.status(500).json({ error: error.message });
+}
   }
 
   // Method not allowed
