@@ -48,33 +48,36 @@ export default async function handler(req, res) {
   }
 
   // GET: Poll for snapshot data
-  if (req.method === "GET") {
+   if (req.method === "GET") {
     const { snapshot_id } = req.query;
     if (!snapshot_id) return res.status(400).json({ error: "Missing snapshot_id" });
 
     try {
-      const response = await fetch(
-        `https://api.brightdata.com/webarchive/dump/${snapshot_id}`,
+      // 1. Check progress
+      const progressRes = await fetch(
+        `https://api.brightdata.com/datasets/v3/progress/${snapshot_id}`,
         {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${process.env.BRIGHT_DATA_API_KEY}`,
-          },
+          headers: { Authorization: `Bearer ${process.env.BRIGHT_DATA_API_KEY}` },
         }
       );
-      const text = await response.text();
-      let data;
-      try {
-        data = JSON.parse(text);
-      } catch (e) {
-        console.error("Bright Data returned non-JSON:", text);
-        return res.status(500).json({ error: "Bright Data returned non-JSON", details: text });
+      const progress = await progressRes.json();
+
+      if (progress.status !== "done") {
+        return res.status(202).json({ status: progress.status, message: "Snapshot not ready yet" });
       }
 
-      if (!response.ok) {
-        console.error("Bright Data error:", data);
-        return res.status(500).json({ error: "Bright Data API error", details: data });
+      // 2. Download snapshot data
+      const dataRes = await fetch(
+        `https://api.brightdata.com/datasets/v3/snapshot/${snapshot_id}`,
+        {
+          headers: { Authorization: `Bearer ${process.env.BRIGHT_DATA_API_KEY}` },
+        }
+      );
+      if (!dataRes.ok) {
+        const errorData = await dataRes.json();
+        return res.status(500).json({ error: "Bright Data API error", details: errorData });
       }
+      const data = await dataRes.json();
       return res.status(200).json(data);
     } catch (error) {
       return res.status(500).json({ error: error.message });
