@@ -55,7 +55,7 @@ export default async function handler(req, res) {
     try {
       // 1. Check progress
       const progressRes = await fetch(
-        `https://api.brightdata.com/datasets/v3/progress/${snapshot_id}`,
+        `https://api.brightdata.com/datasets/v3/progress/s_mci6tx992rrox4igcw`,
         {
           headers: { Authorization: `Bearer ${process.env.BRIGHT_DATA_API_KEY}` },
         }
@@ -68,7 +68,7 @@ export default async function handler(req, res) {
 
       // 2. Download snapshot data
       const dataRes = await fetch(
-        `https://api.brightdata.com/datasets/v3/snapshot/${snapshot_id}`,
+        `https://api.brightdata.com/datasets/v3/snapshot/s_mci6tx992rrox4igcw`,
         {
           headers: { Authorization: `Bearer ${process.env.BRIGHT_DATA_API_KEY}` },
         }
