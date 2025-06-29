@@ -42,43 +42,38 @@ export default async function handler(req, res) {
   }
 
   // Handle GET: poll for snapshot data
-   if (req.method === "GET") {
-    const { snapshot_id } = req.query;
-    if (!snapshot_id) return res.status(400).json({ error: "Missing snapshot_id" });
+  if (req.method === "GET") {
+  const { snapshot_id } = req.query;
+  if (!snapshot_id) return res.status(400).json({ error: "Missing snapshot_id" });
 
+  try {
+    const response = await fetch(
+      `https://api.brightdata.com/datasets/v3/snapshot_data?dataset_id=gd_l7q7dkf244hwjntr0&snapshot_id=${snapshot_id}`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${process.env.BRIGHT_DATA_API_KEY}`,
+        },
+      }
+    );
+    let data;
+    let text = await response.text();
     try {
-      const response = await fetch(
-        "https://api.brightdata.com/datasets/v3/snapshot_data",
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${process.env.BRIGHT_DATA_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            dataset_id: "gd_l7q7dkf244hwjntr0",
-            snapshot_id,
-          }),
-        }
-      );
-      let data;
-      let text = await response.text();
-      try {
-        data = JSON.parse(text);
-      } catch (e) {
-        console.error("Bright Data returned non-JSON:", text);
-        return res.status(500).json({ error: "Bright Data returned non-JSON", details: text });
-      }
-
-      if (!response.ok) {
-        console.error("Bright Data error:", data);
-        return res.status(500).json({ error: "Bright Data API error", details: data });
-      }
-      return res.status(200).json(data);
-    } catch (error) {
-      return res.status(500).json({ error: error.message });
+      data = JSON.parse(text);
+    } catch (e) {
+      console.error("Bright Data returned non-JSON:", text);
+      return res.status(500).json({ error: "Bright Data returned non-JSON", details: text });
     }
+
+    if (!response.ok) {
+      console.error("Bright Data error:", data);
+      return res.status(500).json({ error: "Bright Data API error", details: data });
+    }
+    return res.status(200).json(data);
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
   }
+}
 
   // Method not allowed
   return res.status(405).json({ error: "Method not allowed" });
