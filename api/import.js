@@ -62,9 +62,14 @@ export default async function handler(req, res) {
       );
       const progress = await progressRes.json();
 
-      if (progress.status !== "done") {
-        return res.status(202).json({ status: progress.status, message: "Snapshot not ready yet" });
-      }
+      // In your GET handler, modify the 202 response:
+if (progress.status !== "done") {
+  return res.status(202).json({ 
+    status: progress.status,
+    message: "Snapshot not ready yet",
+    progress: progress // Include the full progress object
+  });
+}
 
       // 2. Download snapshot data
       const dataRes = await fetch(
