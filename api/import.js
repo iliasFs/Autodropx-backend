@@ -71,55 +71,40 @@ if (req.method === "GET") {
       }
     );
     
-    if (!progressRes.ok) {
-      const errorData = await progressRes.json();
-      console.error("Bright Data progress error:", errorData);
-      return res.status(500).json({ 
-        error: "Bright Data API error", 
-        details: errorData 
-      });
-    }
-
     const progress = await progressRes.json();
-    console.log("Bright Data progress:", progress); // Debug log
+    console.log("Bright Data progress:", progress);
 
-    // 2. If not done, return 202
-    if (progress.status !== "done") {
+    // 2. Handle different statuses
+    if (progress.status === 'running' || progress.status === 'starting') {
       return res.status(202).json({ 
         status: progress.status,
-        message: "Snapshot not ready yet",
-        progress: progress
+        message: "Snapshot not ready yet" 
       });
     }
 
-    // 3. Download snapshot data
+    // 3. Download data for ready/done statuses
     const dataRes = await fetch(
       `https://api.brightdata.com/datasets/v3/snapshot/${snapshot_id}`,
       {
         headers: { Authorization: `Bearer ${process.env.BRIGHT_DATA_API_KEY}` },
       }
     );
-    
+
     if (!dataRes.ok) {
       const errorData = await dataRes.json();
-      console.error("Bright Data download error:", errorData);
       return res.status(500).json({ 
-        error: "Bright Data API error", 
+        error: "Bright Data download error", 
         details: errorData 
       });
     }
 
     const data = await dataRes.json();
-    console.log("Bright Data snapshot:", data); // Debug log
-
     return res.status(200).json(data);
 
   } catch (error) {
-    console.error("Error in GET handler:", error);
     return res.status(500).json({ error: error.message });
   }
 }
-
   // Method not allowed
   return res.status(405).json({ error: "Method not allowed" });
 }
